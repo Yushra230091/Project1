@@ -195,11 +195,12 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: StatusBar.currentHeight, // Utilize StatusBar.currentHeight to account for the device's status bar
+        paddingTop: 20, 
         width: '100%',
     },
     container1: {
         flex: 1,
+        paddingTop: 20,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -207,12 +208,13 @@ const styles = StyleSheet.create({
         flex: 1,
         width: '100%',
         height: 'auto',
-        marginTop: -20,
+        marginTop: -70,
     },
     innerContainer: {
         marginBottom: 40,
         width: '80%',
         maxWidth: 300,
+        marginTop: 50,
         backgroundColor: 'rgba(240, 248, 255, 0.8)',
         padding: 20,
         borderRadius: 10,
@@ -232,7 +234,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 5,
-        marginTop: 10,
+        marginTop: 5,
     },
     buttonText: {
         color: '#fff',
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     heroDetailContainer: {
-        marginTop: 20,
+        marginTop: 10,
     },
     heroName: {
         fontSize: 20,
