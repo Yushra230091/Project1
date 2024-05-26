@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Dota",
-    "slug": "Dota",
+    "slug": "dota-a1hhu9mjbvdns8hmf6trz",
     "version": "1.0.0",
     "orientation": "landscape",
     "icon": "./assets/images/icon.png",
@@ -38,7 +38,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "55b7b888-8390-418c-b445-2a554d0372ea"
+        "projectId": "f5e28fb7-ba97-4a37-a926-e86b54d7de46"
       }
     }
   }
