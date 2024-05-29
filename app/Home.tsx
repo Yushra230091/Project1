@@ -1,66 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Text, View, StyleSheet, SafeAreaView, StatusBar, TouchableOpacity, ImageBackground, Image } from 'react-native';
+import { Text, View, StyleSheet, SafeAreaView, StatusBar, TouchableOpacity, ImageBackground, TextInput, ActivityIndicator } from 'react-native';
 import { Video, Audio } from 'expo-av';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import axios from 'axios';
 
-const HeroDetail = () => {
-    const heroDetail = {
-        id: 0,
-        name: "npc_dota_hero_antimage",
-        localized_name: "Anti-Mage",
-        primary_attr: "Agility",
-        attack_type: "Melee",
-    };
-
-    const antiMageImage = require('./image/anti.jpg');
-
+const HeroStats = ({ heroStats }) => {
     return (
         <View style={styles.heroDetailContainer}>
-            <Image source={antiMageImage} style={styles.heroImage} />
-            <Text style={styles.heroName}>{heroDetail.localized_name}</Text>
-            <Text style={styles.heroAttribute}>Primary Attribute: {heroDetail.primary_attr}</Text>
-            <Text style={styles.heroAttackType}>Attack Type: {heroDetail.attack_type}</Text>
-        </View>
-    );
-};
-
-const HeroStats = () => {
-    const heroStats = {
-        id: 1,
-        name: "npc_dota_hero_antimage",
-        localized_name: "Anti-Mage",
-        primary_attr: "Agility",
-        attack_type: "Melee",
-        roles: ["Carry", "Escape"],
-        base_health: 2000,
-        base_health_regen: 2.5,
-        base_mana: 1000,
-        base_mana_regen: 1.5,
-        base_armor: 5,
-        base_mr: 25,
-        base_attack_min: 29,
-        base_attack_max: 33,
-        base_str: 23,
-        base_agi: 24,
-        base_int: 12,
-        str_gain: 1.3,
-        agi_gain: 3.2,
-        int_gain: 1.8,
-        attack_range: 150,
-        projectile_speed: 0,
-        attack_rate: 1.4,
-        base_attack_time: 1.45,
-        attack_point: 0.3,
-        move_speed: 310,
-        turn_rate: 0.5,
-        cm_enabled: true,
-        legs: 2,
-        hero_id: 1,
-    };
-    const antiMageImage = require('./image/anti.jpg');
-    return (
-        <View style={styles.heroDetailContainer}>
-            <Image source={antiMageImage} style={styles.heroImage} />
             <Text style={styles.heroName}>{heroStats.localized_name} Stats</Text>
             <Text style={styles.heroAttribute}>Primary Attribute: {heroStats.primary_attr}</Text>
             <Text style={styles.heroAttackType}>Attack Type: {heroStats.attack_type}</Text>
@@ -88,13 +34,13 @@ const HeroStats = () => {
 };
 
 const App = () => {
-    const [showStats, setShowStats] = useState(false);
-    const [showHeroDetail, setShowHeroDetail] = useState(true);
+    const [heroName, setHeroName] = useState('');
+    const [heroStats, setHeroStats] = useState(null);
+    const [loading, setLoading] = useState(false);
     const [videoFinished, setVideoFinished] = useState(false);
-    const videoRef = useRef<Video>(null); // Ref for the video component
-    const clickSoundRef = useRef(null); // Ref for the click sound
+    const videoRef = useRef(null);
+    const clickSoundRef = useRef(null);
 
-    // Load the click sound when the component mounts
     useEffect(() => {
         const loadSound = async () => {
             const { sound } = await Audio.Sound.createAsync(
@@ -110,7 +56,6 @@ const App = () => {
         };
     }, []);
 
-    // Function to play the click sound
     const playClickSound = async () => {
         try {
             await clickSoundRef.current.replayAsync();
@@ -137,6 +82,31 @@ const App = () => {
         playVideoAsync();
     }, []);
 
+    const fetchHeroData = async () => {
+        setLoading(true);
+        try {
+            const heroResponse = await axios.get(`https://api.opendota.com/api/heroes`);
+            const heroData = heroResponse.data.find(hero => hero.localized_name.toLowerCase() === heroName.toLowerCase());
+
+            if (heroData) {
+                const heroStatsResponse = await axios.get(`https://api.opendota.com/api/heroStats`);
+                const heroStatsData = heroStatsResponse.data.find(hero => hero.localized_name.toLowerCase() === heroName.toLowerCase());
+                if (heroStatsData) {
+                    setHeroStats(heroStatsData);
+                } else {
+                    console.error('Hero stats not found.');
+                    setHeroStats(null);
+                }
+            } else {
+                alert('Hero not found!');
+                setHeroStats(null);
+            }
+        } catch (error) {
+            console.error("Error fetching hero data:", error);
+        }
+        setLoading(false);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
@@ -160,19 +130,24 @@ const App = () => {
                 )}
                 {videoFinished && (
                     <View style={styles.container1}>
-                        <View style={styles.innerContainer}>
-                            {showHeroDetail && <HeroDetail />}
+                       <View style={styles.innerContainer}>
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Enter hero name"
+                                value={heroName}
+                                onChangeText={setHeroName}
+                            />
                             <TouchableOpacity
                                 style={styles.button}
                                 onPress={() => {
-                                    playClickSound(); // Play the click sound
-                                    setShowStats(!showStats);
-                                    setShowHeroDetail(!showHeroDetail);
+                                    playClickSound();
+                                    fetchHeroData();
                                 }}
                             >
-                                <Text style={styles.buttonText}>{showStats ? 'Hide Stats' : 'Show Stats'}</Text>
+                                <Text style={styles.buttonText}>Search Hero</Text>
                             </TouchableOpacity>
-                            {showStats && <HeroStats />}
+                            {loading && <ActivityIndicator size="large" color="#007BFF" />}
+                            {heroStats && <HeroStats heroStats={heroStats} />}
                         </View>
                     </View>
                 )}
@@ -182,141 +157,146 @@ const App = () => {
 };
 
 const styles = StyleSheet.create({
-    backgroundVideo: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        bottom: 0,
-        right: 0,
-        width: '100%',
-        height: '100%',
-        
+backgroundVideo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+    width: '100%',
+    height: '100%',
+},
+container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 20, 
+    width: '100%',
+
+},
+container1: {
+    flex: 1,
+    paddingTop: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+},
+background: {
+    flex: 1,
+    width: '100%',
+    height: 'auto',
+    marginTop: -70,
+},
+innerContainer: {
+    marginBottom: 40,
+    width: '80%',
+    maxWidth: 300,
+    marginTop: 50,
+    backgroundColor: 'rgba(240, 248, 255, 0.8)',
+    padding: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+        width: 0,
+        height: 3,
     },
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingTop: 20, 
-        width: '100%',
-    },
-    container1: {
-        flex: 1,
-        paddingTop: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    background: {
-        flex: 1,
-        width: '100%',
-        height: 'auto',
-        marginTop: -70,
-    },
-    innerContainer: {
-        marginBottom: 40,
-        width: '80%',
-        maxWidth: 300,
-        marginTop: 50,
-        backgroundColor: 'rgba(240, 248, 255, 0.8)',
-        padding: 20,
-        borderRadius: 10,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 3,
-        },
-        shadowOpacity: 0.27,
-        shadowRadius: 4.65,
-        elevation: 6,
-    },
-    button: {
-        height: 40,
-        width: '100%',
-        backgroundColor: '#007BFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 5,
-        marginTop: 5,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    heroDetailContainer: {
-        marginTop: 10,
-    },
-    heroName: {
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    heroAttribute: {
-        fontSize: 16,
-    },
-    heroAttackType: {
-        fontSize: 16,
-    },
-    heroRoles: {
-        fontSize: 16,
-    },
-    heroBaseHealth: {
-        fontSize: 16,
-    },
-    heroHealthRegen: {
-        fontSize: 16,
-    },
-    heroBaseMana: {
-        fontSize: 16,
-    },
-    heroManaRegen: {
-        fontSize: 16,
-    },
-    heroBaseArmor: {
-        fontSize: 16,
-    },
-    heroMagicResistance: {
-        fontSize: 16,
-    },
-    heroAttackDamage: {
-        fontSize: 16,
-    },
-    heroStrength: {
-        fontSize: 16,
-    },
-    heroAgility: {
-        fontSize: 16,
-    },
-    heroIntelligence: {
-        fontSize: 16,
-    },
-    heroAttackRange: {
-        fontSize: 16,
-    },
-    heroProjectileSpeed: {
-        fontSize: 16,
-    },
-    heroAttackRate: {
-        fontSize: 16,
-    },
-    heroBaseAttackTime: {
-        fontSize: 16,
-    },
-    heroAttackPoint: {
-        fontSize: 16,
-    },
-    heroMovementSpeed: {
-        fontSize: 16,
-    },
-    heroTurnRate: {
-        fontSize: 16,
-    },
-    heroLegs: {
-        fontSize: 16,
-    },
-    heroImage: {
-        width: 150,
-        height: 150,
-        marginRight: 10,
-    },
+    shadowOpacity: 0.27,
+    shadowRadius: 4.65,
+    elevation: 6,
+},
+button: {
+    height: 40,
+    width: '100%',
+    backgroundColor: '#007BFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 5,
+    marginTop: 5,
+},
+buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+},
+heroDetailContainer: {
+    marginTop: 10,
+},
+heroName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+},
+heroAttribute: {
+    fontSize: 16,
+},
+heroAttackType: {
+    fontSize: 16,
+},
+heroRoles: {
+    fontSize: 16,
+},
+heroBaseHealth: {
+    fontSize: 16,
+},
+heroHealthRegen: {
+    fontSize: 16,
+},
+heroBaseMana: {
+    fontSize: 16,
+},
+heroManaRegen: {
+    fontSize: 16,
+},
+heroBaseArmor: {
+    fontSize: 16,
+},
+heroMagicResistance: {
+    fontSize: 16,
+},
+heroAttackDamage: {
+    fontSize: 16,
+},
+heroStrength: {
+    fontSize: 16,
+},
+heroAgility: {
+    fontSize: 16,
+},
+heroIntelligence: {
+    fontSize: 16,
+},
+heroAttackRange: {
+    fontSize: 16,
+},
+heroProjectileSpeed: {
+    fontSize: 16,
+},
+heroAttackRate: {
+    fontSize: 16,
+},
+heroBaseAttackTime: {
+    fontSize: 16,
+},
+heroAttackPoint: {
+    fontSize: 16,
+},
+heroMovementSpeed: {
+    fontSize: 16,
+},
+heroTurnRate: {
+    fontSize: 16,
+},
+heroLegs: {
+    fontSize: 16,
+},
+
+searchInput: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingLeft: 10,
+    paddingRight: 10,
+    backgroundColor: '#fff', 
+},
 });
 
 export default App;
